@@ -21,15 +21,15 @@ import onnx
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='./yolov5s.pt', help='weights path')  # from yolov5/models/
-    parser.add_argument('--img_size', nargs='+', type=int, default=[640, 640], help='image size')  # height, width
-    parser.add_argument('--batch_size', type=int, default=1, help='batch size')
-    parser.add_argument('--dynamic', action='store_true', default=False, help='enable dynamic axis in onnx model')
+    parser.add_argument('--weights', type=str, default='/home/asi/dev/thamnt/plate_lm_det/yolov5-face/runs/train/exp4/weights/plate_lmv5n_4lm_1cls.pt', help='weights path')  # from yolov5/models/
+    parser.add_argument('--img_size', nargs='+', type=int, default=[320, 320], help='image size')  # height, width
+    parser.add_argument('--batch_size', type=int, default=32, help='batch size')
+    parser.add_argument('--dynamic', action='store_true', default=True, help='enable dynamic axis in onnx model')
     parser.add_argument('--onnx2pb', action='store_true', default=False, help='export onnx to pb')
     parser.add_argument('--onnx_infer', action='store_true', default=True, help='onnx infer test')
     #=======================TensorRT=================================
     parser.add_argument('--onnx2trt', action='store_true', default=False, help='export onnx to tensorrt')
-    parser.add_argument('--fp16_trt', action='store_true', default=False, help='fp16 infer')
+    parser.add_argument('--fp16_trt', action='store_true', default=True, help='fp16 infer')
     #================================================================
     opt = parser.parse_args()
     opt.img_size *= 2 if len(opt.img_size) == 1 else 1  # expand

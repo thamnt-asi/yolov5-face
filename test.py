@@ -106,6 +106,8 @@ def test(data,
         with torch.no_grad():
             # Run model
             t = time_synchronized()
+            # import pdb;
+            # pdb.set_trace()
             inf_out, train_out = model(img, augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t
 
@@ -123,7 +125,7 @@ def test(data,
 
         # Statistics per image
         for si, pred in enumerate(output):
-            pred = torch.cat((pred[:, :5], pred[:, 15:]), 1) # throw landmark in thresh
+            pred = torch.cat((pred[:, :5], pred[:, 13:]), 1) # throw landmark in thresh
             labels = targets[targets[:, 0] == si, 1:]
             nl = len(labels)
             tcls = labels[:, 0].tolist() if nl else []  # target class

@@ -25,6 +25,7 @@ from utils.general import check_img_size, non_max_suppression_face, apply_classi
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 
+LABELS = ['square_lp', 'long_lp', 'helmet', 'hat', 'no_helmet','logo']
 
 def load_model(weights, device):
     model = attempt_load(weights, map_location=device)  # load FP32 model
@@ -40,9 +41,9 @@ def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
 
-    coords[:, [0, 2, 4, 6, 8]] -= pad[0]  # x padding
-    coords[:, [1, 3, 5, 7, 9]] -= pad[1]  # y padding
-    coords[:, :10] /= gain
+    coords[:, [0, 2, 4, 6]] -= pad[0]  # x padding
+    coords[:, [1, 3, 5, 7]] -= pad[1]  # y padding
+    coords[:, :8] /= gain
     #clip_coords(coords, img0_shape)
     coords[:, 0].clamp_(0, img0_shape[1])  # x1
     coords[:, 1].clamp_(0, img0_shape[0])  # y1
@@ -52,8 +53,8 @@ def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):
     coords[:, 5].clamp_(0, img0_shape[0])  # y3
     coords[:, 6].clamp_(0, img0_shape[1])  # x4
     coords[:, 7].clamp_(0, img0_shape[0])  # y4
-    coords[:, 8].clamp_(0, img0_shape[1])  # x5
-    coords[:, 9].clamp_(0, img0_shape[0])  # y5
+    # coords[:, 8].clamp_(0, img0_shape[1])  # x5
+    # coords[:, 9].clamp_(0, img0_shape[0])  # y5
     return coords
 
 def show_results(img, xyxy, conf, landmarks, class_num):
@@ -69,13 +70,13 @@ def show_results(img, xyxy, conf, landmarks, class_num):
 
     clors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(0,255,255)]
 
-    for i in range(5):
+    for i in range(4):
         point_x = int(landmarks[2 * i])
         point_y = int(landmarks[2 * i + 1])
         cv2.circle(img, (point_x, point_y), tl+1, clors[i], -1)
 
     tf = max(tl - 1, 1)  # font thickness
-    label = str(conf)[:5]
+    label = LABELS[int(class_num)] + '_' + str(conf)[:4]
     cv2.putText(img, label, (x1, y1 - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
     return img
 
@@ -91,10 +92,10 @@ def detect(
     view_img
 ):
     # Load model
-    img_size = 640
+    img_size = 320
     conf_thres = 0.6
     iou_thres = 0.5
-    imgsz=(640, 640)
+    imgsz=(320, 320)
     
     # Directories
     save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
@@ -144,7 +145,7 @@ def detect(
 
         # Inference
         pred = model(img)[0]
-        
+        print("pred.shape", pred.shape)
         # Apply NMS
         pred = non_max_suppression_face(pred, conf_thres, iou_thres)
         print(len(pred[0]), 'face' if len(pred[0]) == 1 else 'faces')
@@ -168,13 +169,13 @@ def detect(
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
 
-                det[:, 5:15] = scale_coords_landmarks(img.shape[2:], det[:, 5:15], im0.shape).round()
+                det[:, 5:13] = scale_coords_landmarks(img.shape[2:], det[:, 5:13], im0.shape).round()
 
                 for j in range(det.size()[0]):
                     xyxy = det[j, :4].view(-1).tolist()
                     conf = det[j, 4].cpu().numpy()
-                    landmarks = det[j, 5:15].view(-1).tolist()
-                    class_num = det[j, 15].cpu().numpy()
+                    landmarks = det[j, 5:13].view(-1).tolist()
+                    class_num = det[j, 13].cpu().numpy()
                     
                     im0 = show_results(im0, xyxy, conf, landmarks, class_num)
             
@@ -210,14 +211,14 @@ def detect(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='runs/train/exp5/weights/last.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='0', help='source')  # file/folder, 0 for webcam
-    parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
+    parser.add_argument('--weights', nargs='+', type=str, default='/home/asi/dev/thamnt/plate_lm_det/yolov5-face/runs/train/exp_v5s_4lm/weights/v5s_6cls_4lm_b32.pt', help='model.pt path(s)')
+    parser.add_argument('--source', type=str, default='/home/asi/dev/thamnt/plate_lm_det/yolov5-face/test.jpg', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--img-size', type=int, default=320, help='inference size (pixels)')
     parser.add_argument('--project', default=ROOT / 'runs/detect', help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
-    parser.add_argument('--save-img', action='store_true', help='save results')
-    parser.add_argument('--view-img', action='store_true', help='show results')
+    parser.add_argument('--save-img', action='store_true', default=True, help='save results')
+    parser.add_argument('--view-img', action='store_true', default=False, help='show results')
     opt = parser.parse_args()
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
